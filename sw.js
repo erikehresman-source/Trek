@@ -2,7 +2,7 @@
 /* TNG Adventure PWA Service Worker — v2.5.1 (Settings) */
 (function(){
   'use strict';
-  var VERSION = 'v2.5.1';
+  var VERSION = 'v2.5.2';
   var CACHE_NAME = 'tng-cache-' + VERSION;
   var CORE = [
     './','./index.html','./manifest.webmanifest','./sw.js',
