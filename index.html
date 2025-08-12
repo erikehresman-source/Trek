@@ -201,9 +201,12 @@
   <!-- Combat -->
   <div id="scene-combat" class="scene combat" aria-label="Space Combat">
     <picture class="bg" id="bg-combat">
-      <source data-std="assets/backgrounds/combat-800.png" data-hi="assets/backgrounds/combat-1600.png" srcset="assets/backgrounds/combat-1600.png" media="(min-width: 900px)">
-      <img class="bg" alt="Nebula combat background" src="assets/backgrounds/combat-800.png">
-    </picture>
+  <source srcset="assets/backgrounds/combat-1600.png" media="(min-width: 900px)">
+  <img class="bg"
+       src="assets/backgrounds/combat-800.png"
+       srcset="assets/backgrounds/combat-800.png 1x, assets/backgrounds/combat-1600.png 2x"
+       alt="Nebula combat background">
+</picture>
     <canvas id="combat-cv" class="combat-canvas"></canvas>
     <div class="combat-ui">
       <div>
