@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
+<title>TNG: Adventure Prototype — v2.5.1 (Settings)</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#121a2a">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TNG Adventure">
+<style>
+  :root{
+    --bg:#0a0f1a; --panel:#121a2a; --accent:#f2a33b; --accent2:#55c1ff; --accent3:#e16ee4; --text:#e8f0ff;
+    --muted:#8aa4c2; --good:#4bd36b; --warn:#ffda57; --bad:#ff6b6b;
+  }
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+  #app{display:flex;flex-direction:column;height:100%}
+  .hud{display:flex;align-items:center;gap:.5rem;padding:.5rem .75rem;background:linear-gradient(90deg,var(--panel),#0f1524);border-bottom:1px solid #1e2b44;position:sticky;top:0;z-index:20}
+  .badge{padding:.25rem .5rem;border-radius:999px;background:var(--accent);color:#1b1206;font-weight:700;font-size:.8rem}
+  .title{font-weight:700;letter-spacing:.06em}
+  .spacer{flex:1}
+  .btn{-webkit-tap-highlight-color:transparent;background:#1b2740;color:var(--text);border:1px solid #304166;border-radius:10px;padding:.5rem .75rem;font-weight:600;cursor:pointer;touch-action:manipulation}
+  .btn.small{padding:.35rem .55rem;font-size:.9rem}
+  .btn.ghost{background:transparent;border-color:#304166}
+  .btn:active{transform:scale(.98)}
+  .mute{display:inline-flex;align-items:center;gap:.35rem;padding:.35rem .55rem;border-radius:999px;background:#17243e;border:1px solid #2a3c64;font-size:.85rem}
+  .scene{flex:1;display:none;position:relative;overflow:hidden}
+  .scene.active{display:block}
+  .bridge .bg, .away .bg, .combat .bg{position:absolute;inset:0;object-fit:cover;width:100%;height:100%;filter:contrast(1.02) saturate(1.05)}
+  .overlay{position:absolute;inset:0;background:radial-gradient(80% 60% at 50% 40%,rgba(0,0,0,0) 0%, rgba(0,0,0,.35) 70%, rgba(0,0,0,.6) 100%); pointer-events:none}
+  .bridge{background:#0a0f1a}
+  .viewscreen{position:absolute;inset:0 0 120px 0;display:flex;align-items:center;justify-content:center}
+  .viewbox{width:min(900px,92vw);height:min(420px,52vh);background:rgba(10,15,26,0.55);backdrop-filter: blur(2px); border-radius:24px;border:1px solid #2a3e67;box-shadow:0 0 0 6px #151b2e inset,0 10px 40px rgba(0,0,0,.6) inset;position:relative;overflow:hidden}
+  .panel{position:absolute;left:10px;top:10px;background:rgba(9,13,23,.65);border:1px solid #233355;border-radius:12px;padding:.5rem .6rem;font-size:.9rem;min-width:190px}
+  .panel .row{display:flex;gap:.5rem;align-items:center;line-height:1.2}
+  .controls{position:absolute;right:10px;top:10px;display:flex;gap:.4rem;flex-direction:column}
+  .pill{padding:.35rem .6rem;border-radius:999px;background:#17243e;border:1px solid #2a3c64;font-size:.85rem}
+  .crew-grid{position:absolute;inset:auto 0 0 0;display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;padding:.5rem;background:linear-gradient(180deg,transparent,rgba(0,0,0,.35) 20%,rgba(0,0,0,.6))}
+  .crew{background:#101a30;border:1px solid #273a5f;border-radius:12px;padding:.5rem;display:flex;gap:.5rem;align-items:center}
+  .portrait{width:48px;height:48px;border-radius:10px;object-fit:cover;background:#0c1324}
+  .meta{display:flex;flex-direction:column;line-height:1.1}
+  .starmap{background:#030814}
+  .legend{position:absolute;right:.5rem;top:.5rem;background:rgba(9,13,23,.75);border:1px solid #233355;border-radius:12px;padding:.5rem .6rem;font-size:.85rem}
+  .warp{display:flex;align-items:center;justify-content:center;background:black;color:var(--accent2);font-weight:800;font-size:1.1rem;z-index:1}
+  .streaks{position:absolute;inset:0;overflow:hidden;z-index:1}
+  .streak{position:absolute;width:2px;height:40px;top:-40px;background:#a9d6ff;opacity:.85;animation:fall linear infinite}
+  @keyframes fall{from{transform:translateY(-60px)}to{transform:translateY(110vh)}}
+  .away{background:#091713}
+  .tile{position:absolute;inset:0 0 120px 0;display:flex;align-items:center;justify-content:center}
+  .tile .bg{width:min(900px,92vw);height:min(420px,52vh);border-radius:20px;border:1px solid #1d3a32;box-shadow:0 0 0 6px #0d1b16 inset;object-fit:cover}
+  .tray{position:absolute;inset:auto 0 0 0;padding:.5rem;background:linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,.5) 15%,rgba(0,0,0,.75));display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;z-index:5}
+  .pill.inv{background:#19332b;border:1px solid #295244}
+  .status{font-size:.9rem;color:#b4eadf}
+  .combat{background:#020409}
+  .combat-ui{position:absolute;inset:auto 0 0 0;display:grid;grid-template-columns:1fr 1fr;gap:.5rem;padding:.5rem;background:linear-gradient(180deg,transparent,rgba(0,0,0,.5) 20%, rgba(0,0,0,.8));z-index:5}
+  .bar{height:10px;border-radius:8px;background:#1b2a44;border:1px solid #27426b;overflow:hidden}
+  .bar>span{display:block;height:100%}
+  .bar.shield>span{background:#55c1ff}
+  .bar.hull>span{background:#ff6b6b}
+  .combat-controls{display:flex;flex-wrap:wrap;gap:.4rem}
+  .cbtn{flex:1 1 calc(50% - .4rem);min-width:120px}
+  canvas.combat-canvas{position:absolute;inset:0 0 120px 0}
+  .epilogue{background:#0b1322;}
+  .report{position:absolute;inset:0 0 120px 0;display:flex;align-items:flex-start;justify-content:center;padding:72px 1rem 140px; z-index:3}
+  .pad{width:min(900px,92vw);max-height:calc(100vh - 220px);background:#0e1626;border:1px solid #233355;border-radius:18px;box-shadow:0 12px 40px rgba(0,0,0,.5);padding:1rem;overflow:auto}
+  .pad h2{margin:.25rem 0 .5rem;font-size:1.05rem}
+  .pad h3{margin:.75rem 0 .35rem;font-size:.95rem;color:#bcd1f7}
+  .pad .line{color:#d9e7ff;line-height:1.35;white-space:pre-line}
+  .pad .meta{color:#a4b6d9;font-size:.9rem}
+
+  /* Settings panel */
+  .settings{position:fixed;right:12px;top:52px;min-width:260px;background:#0e1626;border:1px solid #233355;border-radius:14px;box-shadow:0 14px 48px rgba(0,0,0,.5);padding:.6rem .7rem;z-index:30;display:none}
+  .settings.open{display:block}
+  .settings h4{margin:.2rem 0 .4rem;font-size:.95rem}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin:.35rem 0}
+  .sel{background:#101a30;border:1px solid #273a5f;border-radius:10px;padding:.35rem .45rem;color:var(--text)}
+  .hint{color:#8aa4c2;font-size:.85rem;margin-top:.25rem}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="hud">
+    <span class="badge">NCC-1701-D</span>
+    <span class="title">U.S.S. Enterprise — TNG Adventure (PWA)</span>
+    <span class="spacer"></span>
+    <button class="btn small ghost" id="btn-settings">Settings ⚙️</button>
+    <label class="mute"><input type="checkbox" id="mute-toggle"> Mute</label>
+    <button class="btn small ghost" id="btn-bridge">Bridge</button>
+    <button class="btn small ghost" id="btn-starmap">Star Map</button>
+    <button class="btn small ghost" id="btn-away">Away Team</button>
+    <button class="btn small" id="btn-reset">Reset</button>
+  </div>
+
+  <div id="panel-settings" class="settings" aria-label="Settings Panel">
+    <h4>Settings</h4>
+    <div class="row">
+      <span>Image Quality</span>
+      <select id="sel-quality" class="sel">
+        <option value="auto">Auto (default)</option>
+        <option value="standard">Standard only</option>
+        <option value="high">High-res preferred</option>
+      </select>
+    </div>
+    <div class="row">
+      <span>Portrait Style</span>
+      <select id="sel-portraits" class="sel">
+        <option value="painted">Painted (new)</option>
+        <option value="classic">Classic pixel</option>
+      </select>
+    </div>
+    <div class="row">
+      <span>Mute</span>
+      <input type="checkbox" id="set-mute">
+    </div>
+    <div class="hint">Changes apply immediately and are saved on this device.</div>
+  </div>
+
+  <!-- Bridge -->
+  <div id="scene-bridge" class="scene bridge active" aria-label="Bridge View">
+    <picture class="bg" id="bg-bridge">
+      <source data-std="assets/backgrounds/bridge-800.png" data-hi="assets/backgrounds/bridge-1600.png" srcset="assets/backgrounds/bridge-1600.png" media="(min-width: 900px)">
+      <img class="bg" alt="Enterprise bridge background" src="assets/backgrounds/bridge-800.png">
+    </picture>
+    <div class="overlay"></div>
+    <div class="viewscreen">
+      <div class="viewbox">
+        <canvas id="starfield" class="stars" width="800" height="360" aria-hidden="true"></canvas>
+        <div class="panel">
+          <div class="row"><b>Status:</b> <span id="ship-status">All systems nominal</span></div>
+          <div class="row"><b>Location:</b> <span id="ship-loc">Sol</span></div>
+          <div class="row"><b>Destination:</b> <span id="ship-dest">—</span></div>
+        </div>
+        <div class="controls">
+          <div class="pill">Shields: <b id="hud-shields">Down</b></div>
+          <div class="pill">Alert: <b id="hud-alert">Green</b></div>
+          <button class="btn small" id="btn-raise-shields">Toggle Shields</button>
+          <button class="btn small" id="btn-go-to-starmap">Set Course…</button>
+        </div>
+      </div>
+    </div>
+    <div class="crew-grid">
+      <button class="crew" data-who="Picard"><img class="portrait" id="p-picard" alt="Picard"><span class="meta"><b>Picard</b><span class="muted"> Captain</span></span></button>
+      <button class="crew" data-who="Riker"><img class="portrait" id="p-riker" alt="Riker"><span class="meta"><b>Riker</b><span class="muted"> First Officer</span></span></button>
+      <button class="crew" data-who="Data"><img class="portrait" id="p-data" alt="Data"><span class="meta"><b>Data</b><span class="muted"> Operations</span></span></button>
+      <button class="crew" data-who="Worf"><img class="portrait" id="p-worf" alt="Worf"><span class="meta"><b>Worf</b><span class="muted"> Security</span></span></button>
+      <button class="crew" data-who="La Forge"><img class="portrait" id="p-laforge" alt="La Forge"><span class="meta"><b>La Forge</b><span class="muted"> Engineering</span></span></button>
+      <button class="crew" data-who="Troi"><img class="portrait" id="p-troi" alt="Troi"><span class="meta"><b>Troi</b><span class="muted"> Counselor</span></span></button>
+    </div>
+  </div>
+
+  <!-- Star Map -->
+  <div id="scene-starmap" class="scene starmap" aria-label="Star Map">
+    <canvas id="map-canvas" class="canvas" style="position:absolute;inset:0"></canvas>
+    <div class="legend">
+      <div><b>Local Sector</b></div>
+      <div>• Sol (Earth)</div>
+      <div>• Calder IV (Mission 1)</div>
+      <div>• Narendra Outpost (Mission 2)</div>
+      <div>• Aegis Station (Mission 3)</div>
+      <div>• Ephrion III (Mission 4)</div>
+      <div style="margin-top:.3rem;color:#a7bde3">Tap a system to set course.</div>
+    </div>
+  </div>
+
+  <!-- Warp -->
+  <div id="scene-warp" class="scene warp" aria-label="Warp">
+    <div class="streaks" id="streaks"></div>
+    <div id="warp-label">Engaging warp…</div>
+  </div>
+
+  <!-- Away Mission -->
+  <div id="scene-away" class="scene away" aria-label="Away Mission">
+    <div class="tile">
+      <picture id="bg-away">
+        <source data-std="assets/backgrounds/away-800.png" data-hi="assets/backgrounds/away-1600.png" srcset="assets/backgrounds/away-1600.png" media="(min-width: 900px)">
+        <img class="bg" alt="Away team planet surface" src="assets/backgrounds/away-800.png">
+      </picture>
+      <div class="hotspot" data-id="artifact" style="position:absolute;left:8%; top:58%; width:18%; height:22%; border:2px dashed rgba(255,255,255,.35); border-radius:10px; padding:6px"></div>
+      <div class="hotspot" data-id="console" style="position:absolute;left:42%; top:28%; width:22%; height:20%; border:2px dashed rgba(255,255,255,.35); border-radius:10px; padding:6px"></div>
+      <div class="hotspot" data-id="npc" style="position:absolute;left:74%; top:50%; width:18%; height:26%; border:2px dashed rgba(255,255,255,.35); border-radius:10px; padding:6px"></div>
+    </div>
+    <div class="tray">
+      <span class="pill inv">Tricorder</span>
+      <span class="pill inv">Phaser (stun)</span>
+      <span class="status" id="away-status">Objective: Investigate signal source on Calder IV. (Artifact → Console → Caretaker)</span>
+      <span class="spacer"></span>
+      <button class="btn small" id="btn-hint">Hint</button>
+      <button class="btn small" id="btn-scan">Scan</button>
+      <button class="btn small" id="btn-beamout">Beam Out</button>
+    </div>
+  </div>
+
+  <!-- Combat -->
+  <div id="scene-combat" class="scene combat" aria-label="Space Combat">
+    <picture class="bg" id="bg-combat">
+      <source data-std="assets/backgrounds/combat-800.png" data-hi="assets/backgrounds/combat-1600.png" srcset="assets/backgrounds/combat-1600.png" media="(min-width: 900px)">
+      <img class="bg" alt="Nebula combat background" src="assets/backgrounds/combat-800.png">
+    </picture>
+    <canvas id="combat-cv" class="combat-canvas"></canvas>
+    <div class="combat-ui">
+      <div>
+        <div>Shields</div>
+        <div class="bar shield"><span id="bar-shield" style="width:100%"></span></div>
+        <div style="margin-top:.25rem">Hull</div>
+        <div class="bar hull"><span id="bar-hull" style="width:100%"></span></div>
+      </div>
+      <div>
+        <div>Enemy Shields</div>
+        <div class="bar shield"><span id="bar-eshield" style="width:100%"></span></div>
+        <div style="margin-top:.25rem">Enemy Hull</div>
+        <div class="bar hull"><span id="bar-ehull" style="width:100%"></span></div>
+      </div>
+      <div class="combat-controls">
+        <button class="btn cbtn" id="c-left">Turn Left</button>
+        <button class="btn cbtn" id="c-right">Turn Right</button>
+        <button class="btn cbtn" id="c-impulse">Impulse</button>
+        <button class="btn cbtn" id="c-brake">Full Stop</button>
+        <button class="btn cbtn" id="c-phaser">Fire Phasers</button>
+        <button class="btn cbtn" id="c-torp">Fire Torpedoes</button>
+        <button class="btn cbtn" id="c-retreat">Retreat</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Epilogue -->
+  <div id="scene-epilogue" class="scene epilogue" aria-label="Mission Epilogue">
+    <div class="report">
+      <div class="pad" id="ep-pad">
+        <h2>Captain's Log — Stardate <span id="epi-stardate"></span></h2>
+        <div class="meta" id="epi-subtitle"></div>
+        <h3>Summary</h3>
+        <div class="line" id="epi-summary"></div>
+        <h3>Outcomes</h3>
+        <div class="line" id="epi-outcomes"></div>
+        <h3>Starfleet Notes</h3>
+        <div class="line" id="epi-notes"></div>
+        <h3>Rewards</h3>
+        <div class="line" id="epi-rewards"></div>
+      </div>
+    </div>
+    <div class="tray">
+      <span class="status">Epilogue prepared. Safe to continue.</span>
+      <span class="spacer"></span>
+      <button class="btn small" id="btn-continue-bridge">Continue to Bridge</button>
+      <button class="btn small ghost" id="btn-copy-epilogue">Copy Text</button>
+    </div>
+  </div>
+
+  <!-- Dialog -->
+  <div id="dialog" class="dialog" role="dialog" aria-modal="true" aria-live="assertive" style="display:none">
+    <div class="who" id="dlg-who">Picard</div>
+    <div class="line" id="dlg-line">—</div>
+    <div class="choices" id="dlg-choices"></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  /* ===== Helpers & Audio ===== */
+  function safe(fn){ try{ fn(); } catch(e){ if(window.console&&console.warn){ console.warn('[TNG]',e); } } }
+  function toast(msg){ var t=document.getElementById('toast'); t.textContent=msg; t.className='toast show'; clearTimeout(t._t); t._t=setTimeout(function(){ t.className='toast'; },1400); }
+  function pad3(n){ n=Math.floor(n); return (n<10?'00':n<100?'0':'')+n; }
+  var AudioCtx = window.AudioContext || window.webkitAudioContext;
+  var audioCtx=null, muted=false;
+  function ensureAudio(){ if(!audioCtx && AudioCtx){ audioCtx=new AudioCtx(); } }
+  function beep(f,d,t,v){ if(muted||!AudioCtx) return; ensureAudio(); var o=audioCtx.createOscillator(), g=audioCtx.createGain(); o.type=t||'sine'; o.frequency.value=f||880; g.gain.value=v||0.04; o.connect(g); g.connect(audioCtx.destination); o.start(); setTimeout(function(){ o.stop(); }, (d||0.08)*1000); }
+  function chirp(){ beep(1200,0.05,'triangle',0.05); setTimeout(function(){ beep(1600,0.05,'triangle',0.05); },60); }
+  function selectTone(){ beep(900,0.05,'square',0.04); setTimeout(function(){ beep(700,0.06,'square',0.035); },50); }
+  function errorTone(){ beep(220,0.18,'sawtooth',0.04); }
+  function warpTone(){ if(muted||!AudioCtx) return; ensureAudio(); var o=audioCtx.createOscillator(), g=audioCtx.createGain(); o.type='sine'; o.frequency.setValueAtTime(300,audioCtx.currentTime); o.frequency.exponentialRampToValueAtTime(1200,audioCtx.currentTime+0.6); g.gain.value=0.04; o.connect(g); g.connect(audioCtx.destination); o.start(); setTimeout(function(){ o.stop(); },650); }
+  function beamTone(){ beep(1000,0.1,'triangle',0.05); setTimeout(function(){ beep(1300,0.12,'triangle',0.05); },100); setTimeout(function(){ beep(1600,0.12,'triangle',0.05); },220); }
+
+  /* ===== Settings storage ===== */
+  var settings = { quality:'auto', portraits:'painted', mute:false };
+  try{ var sSaved=localStorage.getItem('tng_settings_v251'); if(sSaved){ settings = JSON.parse(sSaved); } }catch(e){}
+  function saveSettings(){ try{ localStorage.setItem('tng_settings_v251', JSON.stringify(settings)); }catch(e){} }
+
+  /* ===== Mute controls (HUD + Settings) ===== */
+  var muteToggle=document.getElementById('mute-toggle');
+  var setMute=document.getElementById('set-mute');
+  muted = settings.mute; muteToggle.checked = muted; setMute.checked = muted;
+  function applyMute(val){ muted = !!val; muteToggle.checked = muted; setMute.checked = muted; settings.mute = muted; saveSettings(); if(!muted) chirp(); }
+  muteToggle.onchange=function(){ applyMute(muteToggle.checked); };
+  setMute.onchange=function(){ applyMute(setMute.checked); };
+
+  /* ===== Portraits: painted vs classic ===== */
+  function setPortraitImage(id, base){
+    var el=document.getElementById(id); if(!el) return;
+    el.setAttribute('src', 'assets/portraits/'+base+'-128.png');
+    if(settings.quality === 'standard'){ el.removeAttribute('srcset'); }
+    else { el.setAttribute('srcset', 'assets/portraits/'+base+'-128.png 1x, assets/portraits/'+base+'-256.png 2x'); }
+    el.onerror=function(){ el.removeAttribute('srcset'); };
+  }
+  // Simple pixel-art generator (classic mode)
+  function classicPortrait(id, variant){
+    var specMap = {
+      'p-picard': {uniform:'#c03a3a', skin:'#f0d9b0', hair:null, badge:true },
+      'p-riker' : {uniform:'#c03a3a', skin:'#e6c295', hair:'#3b2a1e', beard:true },
+      'p-data'  : {uniform:'#d1b13a', skin:'#f7f4d6', hair:'#2a2a2a', eyes:'#d6d661' },
+      'p-worf'  : {uniform:'#d1b13a', skin:'#7a5a3b', hair:'#2e1d12', ridges:true, sash:true },
+      'p-laforge':{uniform:'#d1b13a', skin:'#6b4a2e', hair:'#2a2a2a', visor:true },
+      'p-troi'  : {uniform:'#3a78c0', skin:'#e9c6a8', hair:'#3a2a2a' }
+    };
+    var spec = specMap[id];
+    try{
+      var c=document.createElement('canvas'); c.width=48; c.height=48; var ctx=c.getContext('2d'); ctx.imageSmoothingEnabled=false;
+      function headPath(cx, cy, rx, ry, tilt){
+        var k = 0.5522847498, r=(rx+ry)/2;
+        ctx.save(); ctx.translate(cx,cy); ctx.rotate(tilt||0); ctx.scale(rx/r, ry/r);
+        ctx.beginPath();
+        ctx.moveTo(0,-r);
+        ctx.bezierCurveTo(k*r,-r, r,-k*r, r,0);
+        ctx.bezierCurveTo(r,k*r, k*r,r, 0,r);
+        ctx.bezierCurveTo(-k*r,r, -r,k*r, -r,0);
+        ctx.bezierCurveTo(-r,-k*r, -k*r,-r, 0,-r);
+        ctx.restore();
+      }
+      ctx.fillStyle = spec.skin; ctx.strokeStyle='#000'; ctx.lineWidth=1;
+      headPath(26,20,10,12,-0.15); ctx.fill(); ctx.stroke();
+      if(spec.hair){ ctx.fillStyle = spec.hair; headPath(26,16,10.5,6.2,-0.15); ctx.fill(); }
+      if(spec.beard){ ctx.fillStyle = spec.hair || '#2a2a2a'; headPath(26,26.2,9.8,4.8,-0.15); ctx.fill(); }
+      if(spec.ridges){ ctx.strokeStyle='#3b2a1e'; ctx.beginPath(); ctx.moveTo(22,16); ctx.lineTo(22,26); ctx.moveTo(24,16.8); ctx.lineTo(24,26); ctx.moveTo(26,17.6); ctx.lineTo(26,26); ctx.stroke(); }
+      if(spec.visor){ ctx.fillStyle='#c0c8d8'; ctx.fillRect(18,20,16,4); ctx.strokeStyle='#000'; ctx.strokeRect(18,20,16,4); ctx.fillStyle='#222'; ctx.fillRect(19,21,14,2); }
+      else { ctx.fillStyle = spec.eyes || '#222'; ctx.fillRect(22,20,3,3); ctx.fillRect(28,21,3,3); }
+      ctx.fillStyle='#000'; ctx.fillRect(25,28,4,1);
+      ctx.fillStyle=spec.uniform; ctx.strokeStyle='#000';
+      ctx.beginPath(); ctx.moveTo(10,33); ctx.lineTo(40,33); ctx.lineTo(44,44); ctx.lineTo(6,44); ctx.closePath(); ctx.fill(); ctx.stroke();
+      if(spec.sash){ ctx.strokeStyle='#c0c0c0'; ctx.beginPath(); ctx.moveTo(14,32); ctx.lineTo(34,44); ctx.stroke(); }
+      ctx.fillStyle='#e0c46a'; ctx.beginPath(); ctx.arc(34,35,3,0,Math.PI*2); ctx.fill(); ctx.strokeStyle='#000'; ctx.stroke();
+      var img=document.getElementById(id); img.removeAttribute('srcset'); img.src=c.toDataURL('image/png');
+    }catch(e){}
+  }
+  function applyPortraits(){
+    if(settings.portraits==='classic'){
+      classicPortrait('p-picard'); classicPortrait('p-riker'); classicPortrait('p-data'); classicPortrait('p-worf'); classicPortrait('p-laforge'); classicPortrait('p-troi');
+    } else {
+      setPortraitImage('p-picard','picard'); setPortraitImage('p-riker','riker'); setPortraitImage('p-data','data'); setPortraitImage('p-worf','worf'); setPortraitImage('p-laforge','laforge'); setPortraitImage('p-troi','troi');
+    }
+  }
+
+  /* ===== Background quality control ===== */
+  function applyQuality(){
+    var forceStd = settings.quality==='standard';
+    // For each picture with data-std/hi on <source>, set srcset accordingly
+    ['bg-bridge','bg-away','bg-combat'].forEach(function(pid){
+      var pic=document.getElementById(pid); if(!pic) return;
+      var source = pic.querySelector('source');
+      var img = pic.querySelector('img');
+      if(!source || !img) return;
+      var std = source.getAttribute('data-std');
+      var hi  = source.getAttribute('data-hi');
+      if(forceStd){
+        // Force 800px
+        source.setAttribute('srcset',''); // neutralize <source>
+        img.setAttribute('src', std);
+      } else {
+        // Auto/high: restore source and set base img to std
+        source.setAttribute('srcset', hi);
+        img.setAttribute('src', std);
+      }
+    });
+    // Portrait srcset handled in setPortraitImage via settings.quality
+    applyPortraits();
+  }
+
+  /* ===== Settings panel wiring ===== */
+  var ps = document.getElementById('panel-settings');
+  var btnSet = document.getElementById('btn-settings');
+  var selQ = document.getElementById('sel-quality');
+  var selP = document.getElementById('sel-portraits');
+  selQ.value = settings.quality;
+  selP.value = settings.portraits;
+  btnSet.onclick=function(){
+    ps.classList.toggle('open');
+  };
+  selQ.onchange=function(){ settings.quality = selQ.value; saveSettings(); applyQuality(); toast('Quality: '+settings.quality); };
+  selP.onchange=function(){ settings.portraits = selP.value; saveSettings(); applyPortraits(); toast('Portraits: '+settings.portraits); };
+
+  /* ===== Game State (trimmed, identical to v2.5.0 core) ===== */
+  var state={ shields:false, alert:'Green', location:'Sol', destination:null,
+    mission1:{hasChip:false,console:false,npc:false},
+    mission2:{resolved:false,diplomacy:false,won:false},
+    mission3:{started:false,trustA:0,trustB:0,dataCheck:false,fixReady:false,pressured:false,final:'',resolved:false,best:false},
+    mission4:{started:false,approach:'',probeFound:false,sabotage:false,remove:false,conceal:false,outcome:'',resolved:false},
+    player:{ shield:100, hull:100, torp:4, angle:0, vx:0, vy:0, x:100, y:140 },
+    enemy:{ shield:100, hull:100, x:520, y:140, vx:-0.4, vy:0.2, angle:Math.PI, cooldown:0 }
+  };
+  try{ var saved=localStorage.getItem('tng_proto_save_v25'); if(saved){ state=JSON.parse(saved);} }catch(e){}
+  function save(){ try{ localStorage.setItem('tng_proto_save_v25', JSON.stringify(state)); }catch(e){} }
+
+  function show(id){
+    var nodes=document.querySelectorAll('.scene'); for(var i=0;i<nodes.length;i++){ nodes[i].classList.remove('active'); }
+    document.getElementById(id).classList.add('active');
+    if(id==='scene-starmap') drawMap();
+    if(id==='scene-bridge') updateHUD();
+    if(id==='scene-warp') startWarp();
+    if(id==='scene-combat') startCombat();
+  }
+  function updateHUD(){
+    document.getElementById('hud-shields').textContent = state.shields ? 'Up':'Down';
+    document.getElementById('hud-alert').textContent = state.alert;
+    document.getElementById('ship-dest').textContent = state.destination || '—';
+    document.getElementById('ship-loc').textContent = state.location;
+  }
+
+  function say(who, line, choices){
+    var dlg=document.getElementById('dialog');
+    document.getElementById('dlg-who').textContent=who;
+    document.getElementById('dlg-line').textContent=line;
+    var box=document.getElementById('dlg-choices'); box.innerHTML='';
+    var len=(choices&&choices.length)?choices.length:0;
+    if(len===0){ choices=[{txt:'Understood.', go:hideDialog}]; len=1; }
+    for(var i=0;i<len;i++){ (function(ch){ var b=document.createElement('button'); b.className='choice'; b.textContent=ch.txt; b.onclick=ch.go; box.appendChild(b); })(choices[i]); }
+    dlg.style.display='block'; chirp();
+  }
+  function hideDialog(){ document.getElementById('dialog').style.display='none'; }
+
+  var crewHandlers={
+    'Picard':function(){ say('Picard','We have multiple assignments pending.',[{txt:'Open star map.',go:function(){ hideDialog(); show('scene-starmap'); }},{txt:'Status update.',go:function(){ say('Picard','Calder IV survey beacon; Narendra Outpost incident; Aegis Station conference; Ephrion III anomaly.'); }}]); },
+    'Riker':function(){ say('Riker','Away team is on standby.',[{txt:'Prepare away team (Calder IV).',go:function(){ hideDialog(); if(state.location==='Calder IV'){ show('scene-away'); } else { say('Riker','We need to be in orbit of Calder IV first.'); }}},
+                         {txt:'Stand by.',go:hideDialog}]); },
+    'Data':function(){ say('Data','Awaiting your questions, Captain.',[{txt:'Aegis nav log analysis',go:function(){ say('Data','Drift suggests the beacon offset; confirm with station access.'); }},
+                               {txt:'Ephrion anomaly',go:function(){ say('Data','Pre-warp society with a concealed energy source. Caution advised.'); }},
+                               {txt:'Thank you.',go:hideDialog}]); },
+    'Worf':function(){ say('Worf','Weapons and security protocols are prepared.',[{txt:'Toggle shields',go:function(){ state.shields=!state.shields; state.alert=state.shields?'Yellow':'Green'; updateHUD(); save(); hideDialog(); selectTone(); }}]); },
+    'La Forge':function(){ say('La Forge','Engines steady, Captain.',[{txt:'Diagnostics',go:function(){ say('La Forge','EPS nominal. Torpedoes: '+state.player.torp+'.'); }},{txt:'Thanks, Geordi.',go:hideDialog}]); },
+    'Troi':function(){ say('Troi','I sense worry on the surface, and someone hiding the source.',[{txt:'Thank you.',go:hideDialog}]); }
+  };
+  var crewBtns=document.querySelectorAll('.crew');
+  for(var cb=0;cb<crewBtns.length;cb++){ (function(btn){ btn.addEventListener('click', function(){ var who=btn.getAttribute('data-who'); (crewHandlers[who]||function(){ say(who,'—'); })(); selectTone(); }); })(crewBtns[cb]); }
+  document.getElementById('btn-raise-shields').onclick=function(){ state.shields=!state.shields; state.alert=state.shields?'Yellow':'Green'; updateHUD(); save(); selectTone(); };
+  document.getElementById('btn-go-to-starmap').onclick=function(){ show('scene-starmap'); };
+
+  // Starfield (bridge)
+  (function(){
+    var c=document.getElementById('starfield'), ctx=c.getContext('2d');
+    function resize(){ c.width=c.clientWidth; c.height=c.clientHeight; } window.addEventListener('resize',resize); resize();
+    var stars=[]; for(var i=0;i<140;i++){ stars.push({x:Math.random()*c.width, y:Math.random()*c.height, z:0.2+Math.random()*0.8}); }
+    (function tick(){
+      ctx.fillStyle='rgba(2,6,16,0.9)'; ctx.fillRect(0,0,c.width,c.height);
+      for(var i=0;i<stars.length;i++){ var s=stars[i]; s.x-= (0.15 + s.z*0.8); if(s.x<0){ s.x=c.width; s.y=Math.random()*c.height; s.z=0.2+Math.random()*0.8; } ctx.globalAlpha=0.5 + s.z*0.5; ctx.fillStyle='#bcd1f7'; ctx.fillRect(s.x,s.y, 2+s.z*1.2, 2+s.z*1.2); }
+      ctx.globalAlpha=1; requestAnimationFrame(tick);
+    })();
+  })();
+
+  // Star Map
+  var systems=[{name:'Sol',x:0.18,y:0.60,kind:'sol'},{name:'Calder IV',x:0.38,y:0.72,kind:'target1'},{name:'Narendra Outpost',x:0.72,y:0.30,kind:'target2'},{name:'Aegis Station',x:0.54,y:0.48,kind:'target3'},{name:'Ephrion III',x:0.30,y:0.36,kind:'target4'}];
+  function drawMap(){
+    var cv=document.getElementById('map-canvas'), ctx=cv.getContext('2d');
+    function resize(){ cv.width=cv.clientWidth; cv.height=cv.clientHeight; } resize();
+    ctx.fillStyle='#030814'; ctx.fillRect(0,0,cv.width,cv.height);
+    ctx.strokeStyle='#122038'; for(var i=0;i<10;i++){ var yy=(i+1)*cv.height/11; ctx.beginPath(); ctx.moveTo(0,yy); ctx.lineTo(cv.width,yy); ctx.stroke(); }
+    for(var j=0;j<8;j++){ var xx=(j+1)*cv.width/9; ctx.beginPath(); ctx.moveTo(xx,0); ctx.lineTo(xx,cv.height); ctx.stroke(); }
+    for(var k=0;k<systems.length;k++){ var s=systems[k], px=s.x*cv.width, py=s.y*cv.height; ctx.beginPath(); var color=s.kind==='sol'?'#ffd166':(s.kind==='target1'?'#55c1ff':(s.kind==='target2'?'#e16ee4':(s.kind==='target3'?'#7fe3a0':'#ff9f6e'))); ctx.fillStyle=color; ctx.arc(px,py,6,0,Math.PI*2); ctx.fill(); ctx.font='12px system-ui,-apple-system,sans-serif'; ctx.fillStyle='#bcd1f7'; ctx.fillText(s.name, px+8, py+4); }
+    function handle(ev){ var r=cv.getBoundingClientRect(); var cx=(ev.touches?ev.touches[0].clientX:ev.clientX)-r.left; var cy=(ev.touches?ev.touches[0].clientY:ev.clientY)-r.top; for(var i=0;i<systems.length;i++){ var s=systems[i], sx=s.x*cv.width, sy=s.y*cv.height; var dx=cx-sx, dy=cy-sy; if(dx*dx+dy*dy<14*14){ setCourse(s.name); break; } } }
+    cv.onclick=handle; cv.ontouchstart=handle;
+  }
+  function setCourse(name){ state.destination=name; save(); updateHUD(); say('Computer','Course laid in to '+name+'. Ready to engage.',[{txt:'Engage.',go:function(){ hideDialog(); show('scene-warp'); warpTone(); }},{txt:'Stand by.',go:hideDialog}]); }
+
+  // Warp overlay
+  function startWarp(){ var streaks=document.getElementById('streaks'); streaks.innerHTML=''; for(var i=0;i<100;i++){ var d=document.createElement('div'); d.className='streak'; d.style.left=Math.floor(Math.random()*100)+'vw'; d.style.animationDuration=(0.9+Math.random()*0.9)+'s'; d.style.animationDelay=(Math.random()*1)+'s'; d.style.opacity=0.5+Math.random()*0.5; streaks.appendChild(d); } document.getElementById('warp-label').textContent='Warp '+(state.shields?'7':'6')+'…'; setTimeout(function(){ state.location=state.destination||state.location; save(); show('scene-bridge'); updateHUD(); if(state.location==='Narendra Outpost' && !state.mission2.resolved){ encounterNarendra(); } else if(state.location==='Calder IV'){ say('Data','We have arrived in orbit of Calder IV.',[{txt:'Prepare away team.',go:function(){ hideDialog(); show('scene-away'); }},{txt:'Return to bridge.',go:hideDialog}]); } else if(state.location==='Aegis Station' && !state.mission3.resolved){ encounterAegis(); } else if(state.location==='Ephrion III' && !state.mission4.resolved){ encounterEphrion(); } else { say('Data','We have arrived in orbit of '+state.location+'.',[{txt:'Open star map.',go:function(){ hideDialog(); show('scene-starmap'); }},{txt:'Return to bridge.',go:hideDialog}]); } },2200); }
+
+  // Mission 2 prompt to combat
+  function encounterNarendra(){ say('Worf','Civilian transport under attack near the outpost.',[{txt:'Hail attacker',go:function(){ hideDialog(); say('Picard','This is Captain Jean-Luc Picard. Disengage.',[{txt:'Appeal to reason',go:function(){ state.mission2.diplomacy=true; state.mission2.resolved=true; state.mission2.won=true; save(); say('Raider','We will withdraw.',[{txt:'Stand down',go:function(){ hideDialog(); }}]); }},{txt:'Firm warning',go:function(){ hideDialog(); startCombat(); show('scene-combat'); }},{txt:'Break off',go:function(){ hideDialog(); startCombat(); show('scene-combat'); }}]); }},{txt:'Red alert. Intercept.',go:function(){ hideDialog(); startCombat(); show('scene-combat'); }}]); }
+
+  // Away mission 1 (as before)
+  function setAwayStatus(msg){ var el=document.getElementById('away-status'); if(el) el.textContent='Objective: '+msg; }
+  function progressM1(){ var s=state.mission1; var complete=(s.hasChip && s.console && s.npc); if(complete){ setAwayStatus('Objective complete. Return with artifact.'); } else { var need=[]; if(!s.hasChip) need.push('recover the artifact'); if(!s.console) need.push('activate the console'); if(!s.npc) need.push('speak with the caretaker'); setAwayStatus('Calder IV — still need to '+need.join(', ')+'.'); } save(); return complete; }
+  document.getElementById('btn-hint').onclick=function(){ var s=state.mission1; if(!s.hasChip) toast('Try the Artifact first.'); else if(!s.console) toast('Slot the chip into the Console.'); else if(!s.npc) toast('Speak to the Caretaker again.'); else toast('All set — Beam Out.'); };
+  document.getElementById('btn-scan').onclick=function(){ say('Data','Tricorder: low-level subspace leakage. Artifact has an isolinear matrix—likely an activation key.'); };
+  document.getElementById('btn-beamout').onclick=function(){ var complete=progressM1(); if(!complete){ say('Riker','Objectives aren’t complete. Beam out anyway?',[{txt:'Beam out anyway',go:function(){ hideDialog(); setTimeout(function(){ show('scene-bridge'); beamTone(); toast('Beamed out — mission incomplete.'); },60); }},{txt:'Stay',go:hideDialog}]); } else { say('Riker','Energizing. Nice work, team.',[{txt:'Return to Bridge',go:function(){ hideDialog(); setTimeout(function(){ show('scene-bridge'); beamTone(); toast('Beamed out with artifact.'); },60); }}]); } };
+
+  var hotspots=document.querySelectorAll('.hotspot');
+  for(var h=0;h<hotspots.length;h++){ (function(hp){ hp.addEventListener('click', function(){ var id=hp.getAttribute('data-id'), s=state.mission1;
+    if(id==='artifact'){ if(!s.hasChip){ s.hasChip=true; toast('Artifact recovered'); say('Worf','Artifact secured, Captain.'); } else { say('Troi','It seems responsive.'); } }
+    if(id==='console'){ if(!s.console){ if(s.hasChip){ s.console=true; toast('Console activated'); say('La Forge','Chip interfaces perfectly.'); } else { say('La Forge','A chip appears to be missing.'); } } else { say('Data','Console handshake repeating.'); } }
+    if(id==='npc'){ if(!s.npc){ if(s.console){ s.npc=true; toast('Caretaker satisfied'); say('Caretaker','You listened. The beacon is awake. Go in peace.'); } else { say('Caretaker','Restore the voice, and we will speak.'); } } else { say('Caretaker','Go in peace, travelers.'); } }
+    progressM1(); save(); }); })(hotspots[h]); }
+
+  // Combat (as before)
+  var combatTick=null, combatCtx=null, cvCombat=null, lastT=0, canFirePhaser=true, torpCooldown=false;
+  var phaserBeams=[], torps=[], eTorps=[];
+  function startCombat(){ show('scene-combat'); selectTone(); cvCombat=document.getElementById('combat-cv'); combatCtx=cvCombat.getContext('2d'); function resize(){ cvCombat.width=cvCombat.clientWidth; cvCombat.height=cvCombat.clientHeight; } resize(); window.addEventListener('resize',resize); updateBars(); if(combatTick) cancelAnimationFrame(combatTick); lastT=(window.performance&&performance.now)?performance.now():Date.now(); loop(lastT); }
+  function updateBars(){ document.getElementById('bar-shield').style.width=Math.max(0,state.player.shield)+'%'; document.getElementById('bar-hull').style.width=Math.max(0,state.player.hull)+'%'; document.getElementById('bar-eshield').style.width=Math.max(0,state.enemy.shield)+'%'; document.getElementById('bar-ehull').style.width=Math.max(0,state.enemy.hull)+'%'; }
+  function loop(t){ var now=(window.performance&&performance.now)?performance.now():Date.now(); var dt=Math.min(0.03,(now-lastT)/1000); lastT=now;
+    state.player.x+=state.player.vx; state.player.y+=state.player.vy;
+    state.player.x=Math.max(40,Math.min(cvCombat.width-40,state.player.x)); state.player.y=Math.max(40,Math.min(cvCombat.height-160,state.player.y));
+    var e=state.enemy; e.x+=e.vx; e.y+=e.vy; if(e.x<200||e.x>cvCombat.width-60) e.vx*=-1; if(e.y<60||e.y>cvCombat.height-200) e.vy*=-1;
+    e.cooldown-=dt; if(e.cooldown<=0){ e.cooldown=1.2+Math.random()*0.8; eTorps.push({x:e.x-20,y:e.y,vx:-2.2,vy:(Math.random()-.5)*0.8,r:4}); }
+    var i, filtered=[]; for(i=0;i<phaserBeams.length;i++){ if((now-phaserBeams[i].t)<200){ filtered.push(phaserBeams[i]); } } phaserBeams=filtered;
+    for(i=0;i<torps.length;i++){ torps[i].x+=torps[i].vx; torps[i].y+=torps[i].vy; }
+    for(i=0;i<eTorps.length;i++){ eTorps[i].x+=eTorps[i].vx; eTorps[i].y+=eTorps[i].vy; }
+    filtered=[]; for(i=0;i<torps.length;i++){ var p=torps[i]; if(p.x<cvCombat.width+30 && p.y>-30 && p.y<cvCombat.height+30) filtered.push(p); } torps=filtered;
+    filtered=[]; for(i=0;i<eTorps.length;i++){ var q=eTorps[i]; if(q.x>-30 && q.y>-30 && q.y<cvCombat.height+30) filtered.push(q); } eTorps=filtered;
+    for(i=0;i<torps.length;i++){ var p2=torps[i]; var dx=p2.x-e.x, dy=p2.y-e.y; if(dx*dx+dy*dy<26*26){ p2.x=cvCombat.width+100; damageEnemy(18); } }
+    for(i=0;i<eTorps.length;i++){ var q2=eTorps[i]; var dx2=q2.x-state.player.x, dy2=q2.y-state.player.y; if(dx2*dx2+dy2*dy2<28*28){ q2.x=-100; damagePlayer(12); } }
+    for(i=0;i<phaserBeams.length;i++){ var b=phaserBeams[i]; if(Math.abs((state.player.y)-e.y)<18 && (e.x-state.player.x)>0){ damageEnemy(0.6); } }
+    drawCombat();
+    if(state.player.hull<=0){ state.mission2.resolved=true; state.mission2.won=false; save(); toast('Enterprise disabled!'); say('La Forge','Main power offline! We have to retreat!',[{txt:'Return to Bridge',go:function(){ hideDialog(); show('scene-bridge'); }}]); return; }
+    if(state.enemy.hull<=0){ state.mission2.resolved=true; state.mission2.won=true; save(); toast('Enemy disabled. Transport safe.'); say('Worf','Target is adrift and powering down, Captain.',[{txt:'Stand down from red alert.',go:function(){ hideDialog(); show('scene-bridge'); state.alert='Green'; state.shields=false; updateHUD(); save(); }}]); return; }
+    combatTick=requestAnimationFrame(loop);
+  }
+  function drawCombat(){ var ctx=cvCombat.getContext('2d'), w=cvCombat.width, h=cvCombat.height; ctx.clearRect(0,0,w,h);
+    ctx.fillStyle='rgba(255,255,255,0.9)'; for(var i=0;i<80;i++){ ctx.fillRect((i*47)%w,(i*29)%h,1,1); }
+    ctx.save(); ctx.translate(state.player.x,state.player.y); ctx.rotate(state.player.angle); ctx.fillStyle='#7aa0ff'; ctx.strokeStyle='#2a3a6b'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(22,0); ctx.quadraticCurveTo(-10,-12,-20,0); ctx.quadraticCurveTo(-10,12,22,0); ctx.fill(); ctx.stroke(); ctx.fillStyle='#9ab6ff'; ctx.fillRect(-10,-10,18,4); ctx.fillRect(-10,6,18,4); ctx.restore();
+    var e=state.enemy; ctx.save(); ctx.translate(e.x,e.y); ctx.rotate(Math.PI); ctx.fillStyle='#caa2a2'; ctx.strokeStyle='#4a2a2a'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(22,0); ctx.quadraticCurveTo(-8,-10,-18,0); ctx.quadraticCurveTo(-8,10,22,0); ctx.fill(); ctx.stroke(); ctx.restore();
+    ctx.strokeStyle='#55c1ff'; ctx.lineWidth=2; for(var i=0;i<phaserBeams.length;i++){ var b=phaserBeams[i]; ctx.beginPath(); ctx.moveTo(b.x,b.y); ctx.lineTo(w-40,b.y); ctx.stroke(); }
+    ctx.fillStyle='#ffd166'; for(var j=0;j<torps.length;j++){ var p=torps[j]; ctx.beginPath(); ctx.arc(p.x,p.y,3,0,Math.PI*2); ctx.fill(); }
+    ctx.fillStyle='#e16ee4'; for(var k=0;k<eTorps.length;k++){ var q=eTorps[k]; ctx.beginPath(); ctx.arc(q.x,q.y,3.5,0,Math.PI*2); ctx.fill(); }
+  }
+  function damageEnemy(d){ if(state.enemy.shield>0){ var s=Math.min(state.enemy.shield,d); state.enemy.shield-=s; d-=s; } if(d>0){ state.enemy.hull-=d; } updateBars(); }
+  function damagePlayer(d){ if(state.player.shield>0){ var s=Math.min(state.player.shield,d); state.player.shield-=s; d-=s; } if(d>0){ state.player.hull-=d; } updateBars(); }
+  document.getElementById('c-left').onclick=function(){ state.player.angle -= 0.15; };
+  document.getElementById('c-right').onclick=function(){ state.player.angle += 0.15; };
+  document.getElementById('c-impulse').onclick=function(){ state.player.vx += Math.cos(state.player.angle)*0.4; state.player.vy += Math.sin(state.player.angle)*0.4; };
+  document.getElementById('c-brake').onclick=function(){ state.player.vx*=0.6; state.player.vy*=0.6; };
+  document.getElementById('c-phaser').onclick=function(){ if(!canFirePhaser){ errorTone(); return; } canFirePhaser=false; setTimeout(function(){ canFirePhaser=true; },300); var x=state.player.x+22*Math.cos(state.player.angle), y=state.player.y+22*Math.sin(state.player.angle); phaserBeams.push({x:x,y:y,t:(window.performance&&performance.now)?performance.now():Date.now()}); beep(1400,0.06,'triangle',0.06); };
+  document.getElementById('c-torp').onclick=function(){ if(state.player.torp<=0 || torpCooldown){ errorTone(); return; } state.player.torp--; torpCooldown=true; setTimeout(function(){ torpCooldown=false; },900); var vx=3.0+state.player.vx, vy=state.player.vy; torps.push({x:state.player.x+22,y:state.player.y,vx:vx,vy:vy,r:3.5}); beep(220,0.08,'sawtooth',0.06); setTimeout(function(){ beep(320,0.08,'sawtooth',0.06); },80); toast('Torpedoes left: '+state.player.torp); };
+  document.getElementById('c-retreat').onclick=function(){ say('Picard','Disengage and fall back to the outpost.',[{txt:'Aye.', go:function(){ hideDialog(); show('scene-bridge'); }}]); };
+
+  /* ===== Aegis & Ephrion (unchanged logic from v2.5.0) ===== */
+  function encounterAegis(){ state.mission3.started=true; save(); say('Picard','Aegis Station dispute over a misaligned beacon. Both delegations await us.',[{txt:'Proceed to conference.',go:function(){ hideDialog(); conferenceStart(); }},{txt:'Another time.',go:hideDialog}]); }
+  function conferenceStart(){ say('Station Cmdr.','Traders blame the station; station blames hardware.',[{txt:'Troi: rapport',go:function(){ state.mission3.trustA+=2; state.mission3.trustB+=2; save(); say('Troi','We’re here to help both sides be heard.',[{txt:'Continue',go:conferenceMenu}]); }},{txt:'Data: raw logs',go:function(){ state.mission3.dataCheck=true; save(); say('Data','Requesting nav telemetry.',[{txt:'Continue',go:conferenceMenu}]); }},{txt:'Riker: side-channel',go:function(){ state.mission3.trustA+=1; save(); say('Riker','We’ll get you a solution without public blame.',[{txt:'Continue',go:conferenceMenu}]); }}]); }
+  function conferenceMenu(){ var s=state.mission3; say('Conference','Next steps?',[{txt:'Troi: read the room',go:function(){ s.trustA+=1; s.trustB+=1; save(); say('Troi','They want safety guarantees before they admit fault.',[{txt:'Continue',go:conferenceMenu}]); }},{txt:'Data: verify drift',go:function(){ s.dataCheck=true; save(); say('Data','Beacon offset 0.7°. Freighter logs consistent.',[{txt:'Continue',go:conferenceMenu}]); }},{txt:'La Forge: patch & self‑test',go:function(){ s.fixReady=true; save(); say('La Forge','I can push a shim and a 48‑hour self‑test.',[{txt:'Continue',go:conferenceMenu}]); }},{txt:'Worf: apply pressure',go:function(){ s.pressured=true; s.trustB-=1; save(); say('Worf','Corridor will be closed if negligence continues.',[{txt:'Continue',go:conferenceMenu}]); }},{txt:'Picard: propose terms',go:function(){ finalizeAccords(); }}]); }
+  function finalizeAccords(){ var s=state.mission3, trust=s.trustA+s.trustB, groundwork=(s.dataCheck?1:0)+(s.fixReady?1:0)+(s.trustA>0?1:0), pressured=s.pressured, tier='ceasefire', best=false; if(groundwork>=2 && trust>=3 && !pressured){ tier='accords'; best=true; } else if(groundwork>=1 && trust>=1){ tier='interim'; } s.final=tier; s.resolved=true; s.best=best; save(); var summary='', outcomes='', notes='', rewards=''; if(tier==='accords'){ summary='Both sides signed the Aegis Accords.'; outcomes='• Beacon recalibrated with verification.\n• Staggered trader returns.\n• Joint oversight committee.'; notes='Publish verification procedure.'; rewards='+10% hull; +1 torpedo.'; state.player.hull=Math.min(100,state.player.hull+10); state.player.torp+=1; } else if(tier==='interim'){ summary='Interim ceasefire pending diagnostics.'; outcomes='• Temporary patch; reduced traffic.\n• Shared logs 48 hours.\n• Enterprise advisory role.'; notes='Short‑term safety'; rewards='+5% hull.'; state.player.hull=Math.min(100,state.player.hull+5); } else { summary='Talks stalled; corridor paused for audit.'; outcomes='• Corridor closed.\n• Minimal cooperation.\n• Beacon core replacement ordered.'; notes='Avoided escalation at cost.'; rewards='—'; } generateEpilogue({ stardate: makeStardate(), subtitle: (tier==='accords'?'The Aegis Accords': (tier==='interim'?'Interim Ceasefire at Aegis':'Stalled Talks at Aegis')), summary:summary, outcomes:outcomes, notes:notes, rewards:rewards }); show('scene-epilogue'); }
+
+  function encounterEphrion(){ state.mission4.started=true; save(); say('Picard','Ephrion III: pre‑warp world with a concealed off‑world probe.',[{txt:'Orbit scans',go:function(){ say('Data','Probe intermittently influences communications.',[{txt:'Continue',go:ephrionPhase2}]); }},{txt:'Troi: emotional read',go:function(){ say('Troi','Anxiety and intent to hide.',[{txt:'Continue',go:ephrionPhase2}]); }},{txt:'Proceed to Away Team',go:function(){ hideDialog(); ephrionAwayOptions(); }}]); }
+  function ephrionPhase2(){ say('Riker','Subtle insertion: disguises or holo‑concealment.',[{txt:'Disguises',go:function(){ state.mission4.approach='disguise'; save(); ephrionAwayOptions(); }},{txt:'Holo‑concealment',go:function(){ state.mission4.approach='holo'; save(); ephrionAwayOptions(); }},{txt:'Abort',go:hideDialog}]); }
+  function ephrionAwayOptions(){ var intro=state.mission4.approach==='holo'?'Holo‑concealment engaged.':'Disguises hold.'; say('Away Team', intro+' Basement entrance is guarded.',[{txt:'Force entry (Worf)',go:function(){ say('Worf','A swift breach will end this quickly.',[{txt:'Proceed',go:function(){ state.mission4.probeFound=true; state.mission4.remove=true; save(); ephrionResolve(); }},{txt:'Hold',go:ephrionAwayOptions}]); }},{txt:'Subtle bypass (Data/La Forge)',go:function(){ state.mission4.probeFound=true; save(); say('La Forge','Slip in during maintenance.',[{txt:'Continue',go:ephrionDecision}]); }},{txt:'Withdraw',go:hideDialog}]); }
+  function ephrionDecision(){ say('Data','Probe options: remove, conceal, or covert sabotage.',[{txt:'Remove',go:function(){ state.mission4.remove=true; state.mission4.sabotage=false; state.mission4.conceal=false; save(); ephrionResolve(); }},{txt:'Conceal',go:function(){ state.mission4.conceal=true; state.mission4.remove=false; state.mission4.sabotage=false; save(); ephrionResolve(); }},{txt:'Sabotage',go:function(){ state.mission4.sabotage=true; state.mission4.remove=false; state.mission4.conceal=false; save(); ephrionResolve(); }}]); }
+  function ephrionResolve(){ var s=state.mission4, summary='', outcomes='', notes='', rewards=''; if(s.remove){ s.outcome='removed'; s.resolved=true; save(); summary='We extracted the off‑world probe; interference ended; PD violation likely.'; outcomes='• Anomalies cease.\n• Council suspects sabotage.\n• Politics stabilize.'; notes='Action will be reviewed.'; rewards='Hull resupply.'; } else if(s.sabotage){ s.outcome='sabotaged'; s.resolved=true; save(); summary='Timed fault introduced; probe fails in a storm (appears natural).'; outcomes='• Influence degrades.\n• Locals blame weather.\n• Minimal contamination.'; notes='Spirit of PD honored.'; rewards='+1 torpedo.'; state.player.torp+=1; } else if(s.conceal){ s.outcome='concealed'; s.resolved=true; save(); summary='We masked our presence; probe remains pending non‑contact solution.'; outcomes='• No immediate cultural impact.\n• Continued risk remains.\n• Science tender proposed.'; notes='By‑the‑book restraint.'; rewards='—'; } else { s.outcome='aborted'; s.resolved=true; save(); summary='We withdrew without action.'; outcomes='• No change planetside.\n• Energy signature persists.'; notes='Recommend clearer mandate.'; rewards='—'; } generateEpilogue({ stardate: makeStardate(), subtitle: 'Shadows of Ephrion — Outcome', summary:summary, outcomes:outcomes, notes:notes, rewards:rewards }); show('scene-epilogue'); }
+
+  // Epilogue
+  function generateEpilogue(data){ document.getElementById('epi-stardate').textContent=data.stardate; document.getElementById('epi-subtitle').textContent=data.subtitle; document.getElementById('epi-summary').textContent=data.summary; document.getElementById('epi-outcomes').textContent=data.outcomes; document.getElementById('epi-notes').textContent=data.notes; document.getElementById('epi-rewards').textContent=data.rewards; document.getElementById('btn-copy-epilogue').onclick=function(){ var text="Captain's Log — Stardate "+data.stardate+"\n"+data.subtitle+"\n\nSummary\n"+data.summary+"\n\nOutcomes\n"+data.outcomes+"\n\nStarfleet Notes\n"+data.notes+"\n\nRewards\n"+data.rewards; if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(function(){ toast('Epilogue copied'); }); } else { toast('Clipboard not available'); } }; }
+  function makeStardate(){ var d=new Date(), y=d.getFullYear(), day=Math.floor((d - new Date(y,0,0))/86400000); return (y-2323) + '.' + (('000'+Math.floor((day/365)*1000)).slice(-3)); }
+  document.getElementById('btn-continue-bridge').onclick=function(){ show('scene-bridge'); };
+
+  // Nav
+  document.getElementById('btn-bridge').onclick=function(){ show('scene-bridge'); };
+  document.getElementById('btn-starmap').onclick=function(){ show('scene-starmap'); };
+  document.getElementById('btn-away').onclick=function(){ show('scene-away'); };
+  document.getElementById('btn-reset').onclick=function(){ localStorage.removeItem('tng_proto_save_v25'); state={ shields:false, alert:'Green', location:'Sol', destination:null, mission1:{hasChip:false,console:false,npc:false}, mission2:{resolved:false,diplomacy:false,won:false}, mission3:{started:false,trustA:0,trustB:0,dataCheck:false,fixReady:false,pressured:false,final:'',resolved:false,best:false}, mission4:{started:false,approach:'',probeFound:false,sabotage:false,remove:false,conceal:false,outcome:'',resolved:false}, player:{ shield:100, hull:100, torp:4, angle:0, vx:0, vy:0, x:100, y:140 }, enemy:{ shield:100, hull:100, x:520, y:140, vx:-0.4, vy:0.2, angle:Math.PI, cooldown:0 } }; save(); show('scene-bridge'); updateHUD(); setAwayStatus('Investigate signal source on Calder IV. (Artifact → Console → Caretaker)'); toast('Game state reset'); };
+
+  // Close dialog on backdrop tap
+  document.getElementById('dialog').addEventListener('click', function(ev){ if(ev.target===this){ hideDialog(); }});
+
+  // Apply settings at startup
+  applyQuality(); applyPortraits();
+
+})();</script>
+
+<script>
+// Service worker registration
+(function(){
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('./sw.js').catch(function(e){ console.log('SW reg failed', e); });
+    });
+  }
+})();
+</script>
+</body>
+</html>
