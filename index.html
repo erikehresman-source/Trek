@@ -120,9 +120,12 @@
   <!-- Bridge -->
   <div id="scene-bridge" class="scene bridge active" aria-label="Bridge View">
     <picture class="bg" id="bg-bridge">
-      <source data-std="assets/backgrounds/bridge-800.png" data-hi="assets/backgrounds/bridge-1600.png" srcset="assets/backgrounds/bridge-1600.png" media="(min-width: 900px)">
-      <img class="bg" alt="Enterprise bridge background" src="assets/backgrounds/bridge-800.png">
-    </picture>
+  <source srcset="assets/backgrounds/bridge-1600.png" media="(min-width: 900px)">
+  <img class="bg"
+       src="assets/backgrounds/bridge-800.png"
+       srcset="assets/backgrounds/bridge-800.png 1x, assets/backgrounds/bridge-1600.png 2x"
+       alt="Enterprise bridge background">
+</picture>
     <div class="overlay"></div>
     <div class="viewscreen">
       <div class="viewbox">
